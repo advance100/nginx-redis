@@ -1,0 +1,76 @@
+FROM alpine:3.2
+
+EXPOSE 80 443
+
+RUN apk add --update alpine-sdk luajit-dev luajit && \
+
+    wget http://nginx.org/download/nginx-1.8.0.tar.gz && \
+    tar -xzvf nginx-1.8.0.tar.gz && \
+    rm -f nginx-1.8.0.tar.gz && \
+
+    wget https://github.com/openresty/lua-nginx-module/archive/v0.9.15.tar.gz && \
+    tar -xzvf v0.9.15.tar.gz && \
+    rm -f v0.9.15.tar.gz && \
+
+    wget http://luajit.org/download/LuaJIT-2.0.3.tar.gz && \
+    tar -xzvf LuaJIT-2.0.3.tar.gz && \
+    rm -f LuaJIT-2.0.3.tar.gz && \
+
+    wget https://github.com/simpl/ngx_devel_kit/archive/v0.2.19.tar.gz && \
+    tar -xzvf v0.2.19.tar.gz && \
+    rm -f v0.2.19.tar.gz && \
+
+    wget https://github.com/openresty/echo-nginx-module/archive/v0.57.tar.gz && \
+    tar -xzvf v0.57.tar.gz && \
+    rm -f v0.57.tar.gz && \
+    
+    wget https://github.com/openresty/redis2-nginx-module/archive/v0.11.zip && \
+    unzip v0.11.zip && \
+    rm -f v0.11.zip && \
+    
+    wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.37.tar.gz && \
+    tar -zxvf pcre-8.37.tar.gz && \
+    rm -f pcre-8.37.tar.gz && \
+
+    wget https://github.com/iMega/nginx-eval-module/archive/master.zip && \
+    unzip master.zip && \
+    rm -f master.zip && \
+
+    wget http://zlib.net/zlib-1.2.8.tar.gz && \
+    tar -zxvf zlib-1.2.8.tar.gz && \
+    rm -f zlib-1.2.8.tar.gz && \
+    
+    export LUAJIT_LIB=/usr/include/luajit-2.0  && \
+    export LUAJIT_INC=/usr/include/luajit-2.0  && \
+
+    cd nginx-1.8.0 && \
+    ./configure \
+        --conf-path=/etc/nginx/nginx.conf \
+        --with-ld-opt='-Wl,-rpath,/usr/include/luajit-2.0' \
+        --add-module=/ngx_devel_kit-0.2.19 \
+        --add-module=/redis2-nginx-module-0.11 \
+        --add-module=/lua-nginx-module-0.9.15 \
+        --with-pcre=/pcre-8.37 \
+        --with-zlib=/zlib-1.2.8 \
+        --add-module=/nginx-eval-module-master \
+        --add-module=/echo-nginx-module-0.57 && \
+    make -j2 && \
+    make install && \
+
+    rm -rf /ngx_devel_kit-0.2.19 && \
+    rm -rf /redis2-nginx-module-0.11 && \
+    rm -rf /lua-nginx-module-0.9.15 && \
+    rm -rf /pcre-8.37 && \
+    rm -rf /zlib-1.2.8 && \
+    rm -rf /nginx-eval-module-master && \
+    rm -rf /echo-nginx-module-0.57 && \
+
+    apk del alpine-sdk luajit-dev && \
+    rm -rf /var/cache/apk/* && \
+    mkdir -p /tmp/nginx/client-body
+
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+VOLUME ["/etc/nginx/sites-enabled", "/etc/nginx/certs", "/etc/nginx/conf.d"]
+
+CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
